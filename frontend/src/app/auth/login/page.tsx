@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { authAPI } from '@/services/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -13,29 +14,15 @@ export default function LoginPage() {
     e.preventDefault();
 
     try {
-      // Call the backend login API
-      const response = await fetch('http://localhost:8000/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      // Call the auth API service
+      const response = await authAPI.login(email, password);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store the JWT token from the backend response
-        localStorage.setItem('token', data.access_token);
-
+      if (response.success) {
         // Redirect to tasks page after successful login
         router.push('/tasks');
-        router.refresh(); // Refresh to update the UI
-      } else {
-        setError(data.detail || 'Login failed');
       }
-    } catch (err) {
-      setError('An error occurred during login');
+    } catch (err: any) {
+      setError(err.error || 'Login failed');
       console.error('Login error:', err);
     }
   };

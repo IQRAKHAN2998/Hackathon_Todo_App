@@ -1,6 +1,6 @@
 from sqlmodel import SQLModel, Field, create_engine
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from passlib.context import CryptContext
 
@@ -15,12 +15,15 @@ class User(SQLModel, table=True):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     email: str = Field(unique=True, nullable=False, max_length=255)
     password: str = Field(nullable=False)  # Hashed password
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @staticmethod
     def hash_password(password: str):
         """Hash the password using bcrypt"""
+        # Bcrypt has a 72 character limit, so truncate if necessary
+        if len(password) > 72:
+            password = password[:72]
         return pwd_context.hash(password)
 
     def verify_password(self, plain_password: str) -> bool:
@@ -40,6 +43,6 @@ class Task(SQLModel, table=True):
     priority: str = Field(default="medium", regex="^(low|medium|high)$")  # Priority level
     tags: Optional[str] = Field(default=None)  # Optional tags for the task (stored as JSON string)
     due_date: Optional[datetime] = None  # Optional due date
-    created_at: datetime = Field(default_factory=datetime.utcnow)  # Creation timestamp
-    updated_at: datetime = Field(default_factory=datetime.utcnow)  # Update timestamp
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))  # Creation timestamp
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))  # Update timestamp
     user_id: str = Field(foreign_key="user.id", nullable=False)  # Link to the user who owns the task

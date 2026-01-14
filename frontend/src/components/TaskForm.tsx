@@ -16,27 +16,34 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
   const [description, setDescription] = useState(task?.description || '');
   const [priority, setPriority] = useState<Priority>(task?.priority || 'medium');
   const [dueDate, setDueDate] = useState(task?.dueDate || '');
-  const [tags, setTags] = useState(task?.tags?.join(', ') || '');
+  const [tags, setTags] = useState(
+    Array.isArray(task?.tags)
+      ? task.tags.join(', ')
+      : typeof task?.tags === 'string'
+        ? task.tags
+        : ''
+  );
   const [completed, setCompleted] = useState(task?.completed || false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const taskData = {
+    // Transform data to match backend field names and format
+    const transformedTaskData = {
       title: title.trim(),
       description,
       priority,
-      dueDate: dueDate || null,
-      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+      due_date: dueDate || null,  // Changed to match backend field name
+      tags: JSON.stringify(tags.split(',').map(tag => tag.trim()).filter(tag => tag)), // Serialize tags as JSON string for backend
       completed
     };
 
     if (task) {
       // Update existing task - cast to Partial<Task>
-      onSubmit(taskData as Partial<Task>);
+      onSubmit(transformedTaskData as Partial<Task>);
     } else {
       // Create new task - cast to NewTask
-      onSubmit(taskData as NewTask);
+      onSubmit(transformedTaskData as NewTask);
     }
   };
 

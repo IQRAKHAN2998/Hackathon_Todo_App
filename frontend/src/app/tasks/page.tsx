@@ -7,8 +7,9 @@ import TaskList from '@/components/TaskList';
 import TaskForm from '@/components/TaskForm';
 import FilterControls from '@/components/FilterControls';
 import SortControls from '@/components/SortControls';
+import FloatingChatWidget from '@/components/FloatingChatWidget';
 import { Task, FilterCriteria, SortCriteria, NewTask, TaskUpdate } from '@/types/task';
-import { taskApi } from '@/services/api';
+import { taskAPI } from '@/services/api';
 
 const TasksPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -104,11 +105,17 @@ const TasksPage: React.FC = () => {
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const response = await taskApi.getTasks();
-      if (response.success && Array.isArray(response.data)) {
-        setTasks(response.data as Task[]);
+      const response = await taskAPI.getTasks();
+      // The API returns the tasks array directly, not wrapped in success/data
+      if (Array.isArray(response)) {
+        setTasks(response as Task[]);
       } else {
-        setError('Failed to fetch tasks: Invalid response format');
+        // If response is not an array but has a data property (fallback for different formats)
+        if (response && Array.isArray(response.data)) {
+          setTasks(response.data as Task[]);
+        } else {
+          setError('Failed to fetch tasks: Invalid response format');
+        }
       }
     } catch (err: any) {
       setError(err.error || 'Failed to fetch tasks');
@@ -120,14 +127,11 @@ const TasksPage: React.FC = () => {
 
   const handleAddTask = async (taskData: NewTask) => {
     try {
-      const response = await taskApi.createTask(taskData);
-      if (response.success) {
-        // Re-fetch tasks to ensure state comes from backend data
-        await fetchTasks();
-        setShowForm(false);
-      } else {
-        setError('Failed to add task');
-      }
+      const response = await taskAPI.createTask(taskData);
+      // The API should return successfully if the task was created
+      // Re-fetch tasks to ensure state comes from backend data
+      await fetchTasks();
+      setShowForm(false);
     } catch (err: any) {
       setError(err.error || 'Failed to add task');
       console.error('Error adding task:', err);
@@ -138,15 +142,12 @@ const TasksPage: React.FC = () => {
     if (!editingTask) return;
 
     try {
-      const response = await taskApi.updateTask(editingTask.id, taskData);
-      if (response.success) {
-        // Re-fetch tasks to ensure state comes from backend data
-        await fetchTasks();
-        setEditingTask(null);
-        setShowForm(false);
-      } else {
-        setError('Failed to update task');
-      }
+      const response = await taskAPI.updateTask(editingTask.id, taskData);
+      // The API should return successfully if the task was updated
+      // Re-fetch tasks to ensure state comes from backend data
+      await fetchTasks();
+      setEditingTask(null);
+      setShowForm(false);
     } catch (err: any) {
       setError(err.error || 'Failed to update task');
       console.error('Error updating task:', err);
@@ -158,13 +159,10 @@ const TasksPage: React.FC = () => {
     if (!task) return;
 
     try {
-      const response = await taskApi.toggleTaskCompletion(id, !task.completed);
-      if (response.success) {
-        // Re-fetch tasks to ensure state comes from backend data
-        await fetchTasks();
-      } else {
-        setError('Failed to update task status');
-      }
+      const response = await taskAPI.updateTask(id, { completed: !task.completed });
+      // The API should return successfully if the task status was updated
+      // Re-fetch tasks to ensure state comes from backend data
+      await fetchTasks();
     } catch (err: any) {
       setError(err.error || 'Failed to update task status');
       console.error('Error toggling task:', err);
@@ -177,13 +175,10 @@ const TasksPage: React.FC = () => {
     }
 
     try {
-      const response = await taskApi.deleteTask(id);
-      if (response.success) {
-        // Re-fetch tasks to ensure state comes from backend data
-        await fetchTasks();
-      } else {
-        setError('Failed to delete task');
-      }
+      const response = await taskAPI.deleteTask(id);
+      // The API should return successfully if the task was deleted
+      // Re-fetch tasks to ensure state comes from backend data
+      await fetchTasks();
     } catch (err: any) {
       setError(err.error || 'Failed to delete task');
       console.error('Error deleting task:', err);
@@ -260,6 +255,7 @@ const TasksPage: React.FC = () => {
           onEdit={handleEditTask}
         />
       </div>
+      <FloatingChatWidget />
     </Layout>
   );
 };

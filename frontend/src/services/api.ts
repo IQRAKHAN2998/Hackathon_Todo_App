@@ -1,6 +1,7 @@
 import axios from 'axios';
-import { Task, TaskResponse, ErrorResponse, FilterCriteria, SortCriteria } from '@/types/task';
+import { ChatResponse, SendMessageRequest } from '../types/chat';
 
+// Get the API base URL from environment variables
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
 // Create axios instance with default configuration
@@ -12,12 +13,16 @@ const api = axios.create({
 });
 
 // Request interceptor to add JWT token to requests
+// Modified: Better Auth temporarily turned OFF - simplified to add mock token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Add mock token from localStorage (for compatibility with backend expecting auth header)
+    // Default to mock token if localStorage is not available
+    let token = 'mock-jwt-token-for-development';
+    if (typeof window !== 'undefined' && window.localStorage) {
+      token = localStorage.getItem('token') || token;
     }
+    config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   (error) => {
@@ -26,255 +31,150 @@ api.interceptors.request.use(
 );
 
 // Response interceptor to handle authentication errors
+// DISABLED: Better Auth temporarily turned OFF - commented out to bypass auth redirects
+/*
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       // Redirect to login if unauthorized
-      localStorage.removeItem('token');
-      window.location.href = '/auth/login';
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem('token');
+        window.location.href = '/auth/login';
+      }
     }
     return Promise.reject(error);
   }
 );
+*/
 
-export const taskApi = {
-  // Get all tasks with optional filtering and sorting
-  getTasks: async (filters?: FilterCriteria, sort?: SortCriteria) => {
-    const params: Record<string, any> = {};
-
-    if (filters) {
-      if (filters.completed !== undefined && filters.completed !== null) {
-        params.completed = filters.completed;
-      }
-      if (filters.priority) {
-        params.priority = filters.priority;
-      }
-      if (filters.tags && filters.tags.length > 0) {
-        params.tag = filters.tags[0]; // Using first tag as query param (backend might need to handle multiple)
-      }
-      if (filters.searchQuery) {
-        params.keyword = filters.searchQuery;
-      }
-    }
-
-    if (sort) {
-      params.sort = sort.field;
-      params.reverse = sort.direction === 'desc';
-    }
-
+// Chat API functions
+export const chatAPI = {
+  // Send a message to the chatbot
+  sendMessage: async (message: string, conversationId?: string): Promise<ChatResponse> => {
     try {
-      // The backend returns raw task data, but we need to wrap it in our expected format
-      const response = await api.get<any>(`/api/tasks`, { params }); // Removed userId from URL
-
-      // Wrap the raw response in our expected format
-      const wrappedResponse: TaskResponse = {
-        success: true,
-        data: response.data
-      };
-
-      // Process response to convert tags from string to array
-      if (wrappedResponse.data && Array.isArray(wrappedResponse.data)) {
-        wrappedResponse.data = wrappedResponse.data.map(task => ({
-          ...task,
-          tags: Array.isArray(task.tags) ? task.tags : (task.tags ? JSON.parse(task.tags) : []),
-          dueDate: task.due_date || undefined,
-          createdAt: task.created_at,
-          updatedAt: task.updated_at
-        }));
-      }
-
-      return wrappedResponse;
-    } catch (error: any) {
-      const errorResponse: ErrorResponse = {
-        error: error.response?.data?.error || 'Failed to fetch tasks',
-        code: error.response?.status.toString() || '500',
-        details: error.response?.data
-      };
-      throw errorResponse;
+      const response = await api.post<ChatResponse>('/api/chat', {
+        message,
+        conversation_id: conversationId,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      throw error;
     }
   },
 
-  // Get a specific task by ID
-  getTask: async (id: string) => {
+  // Get all conversations for the current user
+  getConversations: async (): Promise<any[]> => {
     try {
-      // The backend returns raw task data, but we need to wrap it in our expected format
-      const response = await api.get<any>(`/api/tasks/${id}`); // Removed userId from URL
+      const response = await api.get('/api/chat/conversations');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      throw error;
+    }
+  },
 
-      // Wrap the raw response in our expected format
-      const wrappedResponse: TaskResponse = {
-        success: true,
-        data: response.data
-      };
+  // Get messages for a specific conversation
+  getConversationMessages: async (conversationId: string): Promise<any[]> => {
+    try {
+      const response = await api.get(`/api/chat/conversations/${conversationId}/messages`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching conversation messages:', error);
+      throw error;
+    }
+  },
+};
 
-      // Process response to convert tags from string to array
-      if (wrappedResponse.data) {
-        wrappedResponse.data = {
-          ...wrappedResponse.data,
-          tags: Array.isArray(wrappedResponse.data.tags) ?
-            wrappedResponse.data.tags :
-            (wrappedResponse.data.tags ? JSON.parse(wrappedResponse.data.tags) : []),
-          dueDate: wrappedResponse.data.due_date || undefined,
-          createdAt: wrappedResponse.data.created_at,
-          updatedAt: wrappedResponse.data.updated_at
-        };
-      }
-
-      return wrappedResponse;
-    } catch (error: any) {
-      const errorResponse: ErrorResponse = {
-        error: error.response?.data?.error || `Failed to fetch task with ID: ${id}`,
-        code: error.response?.status.toString() || '500',
-        details: error.response?.data
-      };
-      throw errorResponse;
+// Task API functions
+export const taskAPI = {
+  // Get all tasks
+  getTasks: async (): Promise<any[]> => {
+    try {
+      const response = await api.get('/api/tasks');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      throw error;
     }
   },
 
   // Create a new task
-  createTask: async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+  createTask: async (taskData: any): Promise<any> => {
     try {
-      // Convert tags from array to JSON string for backend storage
-      const taskDataToSend = {
-        ...taskData,
-        tags: Array.isArray(taskData.tags) ? JSON.stringify(taskData.tags) : taskData.tags
-      };
-
-      // The backend returns raw task data, but we need to wrap it in our expected format
-      const response = await api.post<any>(`/api/tasks`, taskDataToSend); // Removed userId from URL
-
-      // Wrap the raw response in our expected format
-      const wrappedResponse: TaskResponse = {
-        success: true,
-        data: response.data
-      };
-
-      // Process response to convert tags from string back to array
-      if (wrappedResponse.data) {
-        wrappedResponse.data = {
-          ...wrappedResponse.data,
-          tags: Array.isArray(wrappedResponse.data.tags) ?
-            wrappedResponse.data.tags :
-            (wrappedResponse.data.tags ? JSON.parse(wrappedResponse.data.tags) : []),
-          dueDate: wrappedResponse.data.due_date || undefined,
-          createdAt: wrappedResponse.data.created_at,
-          updatedAt: wrappedResponse.data.updated_at
-        };
-      }
-
-      return wrappedResponse;
-    } catch (error: any) {
-      const errorResponse: ErrorResponse = {
-        error: error.response?.data?.error || 'Failed to create task',
-        code: error.response?.status.toString() || '500',
-        details: error.response?.data
-      };
-      throw errorResponse;
+      const response = await api.post('/api/tasks', taskData);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating task:', error);
+      throw error;
     }
   },
 
-  // Update an existing task
-  updateTask: async (id: string, taskData: Partial<Task>) => {
+  // Update a task
+  updateTask: async (taskId: string, taskData: any): Promise<any> => {
     try {
-      // Convert tags from array to JSON string for backend storage if present
-      const taskDataToSend = {
-        ...taskData,
-        tags: taskData.tags !== undefined ?
-          (Array.isArray(taskData.tags) ? JSON.stringify(taskData.tags) : taskData.tags) :
-          undefined
-      };
-
-      // The backend returns raw task data, but we need to wrap it in our expected format
-      const response = await api.put<any>(`/api/tasks/${id}`, taskDataToSend); // Removed userId from URL
-
-      // Wrap the raw response in our expected format
-      const wrappedResponse: TaskResponse = {
-        success: true,
-        data: response.data
-      };
-
-      // Process response to convert tags from string back to array
-      if (wrappedResponse.data) {
-        wrappedResponse.data = {
-          ...wrappedResponse.data,
-          tags: Array.isArray(wrappedResponse.data.tags) ?
-            wrappedResponse.data.tags :
-            (wrappedResponse.data.tags ? JSON.parse(wrappedResponse.data.tags) : []),
-          dueDate: wrappedResponse.data.due_date || undefined,
-          createdAt: wrappedResponse.data.created_at,
-          updatedAt: wrappedResponse.data.updated_at
-        };
-      }
-
-      return wrappedResponse;
-    } catch (error: any) {
-      const errorResponse: ErrorResponse = {
-        error: error.response?.data?.error || `Failed to update task with ID: ${id}`,
-        code: error.response?.status.toString() || '500',
-        details: error.response?.data
-      };
-      throw errorResponse;
+      const response = await api.put(`/api/tasks/${taskId}`, taskData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating task:', error);
+      throw error;
     }
   },
 
   // Delete a task
-  deleteTask: async (id: string) => {
+  deleteTask: async (taskId: string): Promise<any> => {
     try {
-      // The backend returns a success message, but we need to wrap it in our expected format
-      const response = await api.delete<any>(`/api/tasks/${id}`); // Removed userId from URL
+      const response = await api.delete(`/api/tasks/${taskId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      throw error;
+    }
+  },
+};
 
-      // For delete operations, we'll return a success response with no data
-      const wrappedResponse: TaskResponse = {
-        success: true,
-        data: response.data  // This could be the success message from the backend
-      };
+// Authentication API functions
+export const authAPI = {
+  // Login user
+  login: async (email: string, password: string): Promise<any> => {
+    try {
+      // DISABLED: Better Auth temporarily turned OFF - returning mock success
+      // const response = await api.post('/api/auth/login', { email, password });
+      // return response.data;
 
-      return wrappedResponse;
-    } catch (error: any) {
-      const errorResponse: ErrorResponse = {
-        error: error.response?.data?.error || `Failed to delete task with ID: ${id}`,
-        code: error.response?.status.toString() || '500',
-        details: error.response?.data
+      // Mock successful login response
+      const mockToken = 'mock-jwt-token-for-development';
+      localStorage.setItem('token', mockToken);
+      return {
+        access_token: mockToken,
+        token_type: 'bearer',
+        success: true
       };
-      throw errorResponse;
+    } catch (error) {
+      console.error('Error logging in:', error);
+      throw error;
     }
   },
 
-  // Toggle task completion status
-  toggleTaskCompletion: async (id: string, completed: boolean) => {
+  // Signup user
+  signup: async (email: string, password: string): Promise<any> => {
     try {
-      // The backend returns raw task data, but we need to wrap it in our expected format
-      const response = await api.patch<any>(`/api/tasks/${id}/complete`, {
-        completed
-      });
+      // DISABLED: Better Auth temporarily turned OFF - returning mock success
+      // const response = await api.post('/api/auth/signup', { email, password });
+      // return response.data;
 
-      // Wrap the raw response in our expected format
-      const wrappedResponse: TaskResponse = {
-        success: true,
-        data: response.data
+      // Mock successful signup response
+      const mockToken = 'mock-jwt-token-for-development';
+      localStorage.setItem('token', mockToken);
+      return {
+        access_token: mockToken,
+        token_type: 'bearer',
+        success: true
       };
-
-      // Process response to convert tags from string back to array
-      if (wrappedResponse.data) {
-        wrappedResponse.data = {
-          ...wrappedResponse.data,
-          tags: Array.isArray(wrappedResponse.data.tags) ?
-            wrappedResponse.data.tags :
-            (wrappedResponse.data.tags ? JSON.parse(wrappedResponse.data.tags) : []),
-          dueDate: wrappedResponse.data.due_date || undefined,
-          createdAt: wrappedResponse.data.created_at,
-          updatedAt: wrappedResponse.data.updated_at
-        };
-      }
-
-      return wrappedResponse;
-    } catch (error: any) {
-      const errorResponse: ErrorResponse = {
-        error: error.response?.data?.error || `Failed to update task completion status with ID: ${id}`,
-        code: error.response?.status.toString() || '500',
-        details: error.response?.data
-      };
-      throw errorResponse;
+    } catch (error) {
+      console.error('Error signing up:', error);
+      throw error;
     }
   },
 };

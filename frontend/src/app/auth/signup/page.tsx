@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { authAPI } from '@/services/api';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -19,29 +20,15 @@ export default function SignupPage() {
     }
 
     try {
-      // Call the backend signup API
-      const response = await fetch('http://localhost:8000/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      // Call the auth API service
+      const response = await authAPI.signup(email, password);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store the JWT token from the backend response
-        localStorage.setItem('token', data.access_token);
-
+      if (response.success) {
         // Redirect to tasks page after successful signup
         router.push('/tasks');
-        router.refresh(); // Refresh to update the UI
-      } else {
-        setError(data.detail || 'Signup failed');
       }
-    } catch (err) {
-      setError('An error occurred during signup');
+    } catch (err: any) {
+      setError(err.error || 'Signup failed');
       console.error('Signup error:', err);
     }
   };

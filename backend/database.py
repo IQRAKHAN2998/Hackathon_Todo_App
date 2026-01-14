@@ -1,24 +1,22 @@
 from sqlmodel import create_engine, Session
+from config.settings import settings
 import os
-from dotenv import load_dotenv
-from urllib.parse import quote_plus
 
-# Load environment variables from .env file
-load_dotenv()
 
-# Get database URL from environment variables for PostgreSQL
-DATABASE_URL = os.getenv("NEON_DATABASE_URL")
-if not DATABASE_URL:
-    # Fallback to a default format if not provided - this should be set in .env
-    raise ValueError("NEON_DATABASE_URL environment variable is required for PostgreSQL")
+# Create the database engine
+# Use neon database if available, otherwise use default database
+DATABASE_URL = settings.neon_database_url or settings.database_url
 
-# Create the database engine for PostgreSQL
-engine = create_engine(DATABASE_URL, echo=True)
+# Create the database engine with appropriate settings for different databases
+if DATABASE_URL.startswith("sqlite"):
+    # For SQLite, don't use connection pooling
+    engine = create_engine(DATABASE_URL)
+else:
+    # For PostgreSQL, use appropriate connection settings
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
 
 def get_session():
-    """
-    Generator function that yields a database session.
-    This is used for dependency injection in FastAPI endpoints.
-    """
+    """Generator function that yields a database session."""
     with Session(engine) as session:
         yield session

@@ -1,57 +1,63 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes.tasks import router as tasks_router
-from auth_routes import router as auth_router
 from database import engine
-from models import Task, User
+from models import User, Task, Conversation, ChatMessage
+from sqlmodel import SQLModel, Session, select
+from routes import auth, tasks, chat
+from config.settings import settings
+import uuid
 
-# Import SQLModel and create all tables in the database
-from sqlmodel import SQLModel
 
 # Create all tables in the database
 SQLModel.metadata.create_all(engine)
 
-# Ensure default user exists
-from models import User
-from sqlmodel import Session, select
-
-def ensure_default_user():
+# Initialize dummy user for auth bypass (Better Auth disabled)
+try:
+    DUMMY_USER_ID = "11111111-1111-1111-1111-111111111111"
     with Session(engine) as session:
-        default_user_id = "default-user-123"
-        existing_user = session.get(User, default_user_id)
+        # Check if dummy user already exists
+        existing_user = session.exec(select(User).where(User.id == DUMMY_USER_ID)).first()
         if not existing_user:
-            default_user = User(
-                id=default_user_id,
-                email="default@example.com",
-                password=User.hash_password("temp")
+            # Create dummy user with hashed password
+            dummy_user = User(
+                id=DUMMY_USER_ID,
+                email="dev@example.com",
+                password=User.hash_password("dummy_password")
             )
-            session.add(default_user)
+            session.add(dummy_user)
             session.commit()
+            print("Dummy user created successfully")
+        else:
+            print("Dummy user already exists")
+except Exception as e:
+    print(f"Error initializing dummy user: {e}")
 
-# Create the default user when the app starts
-ensure_default_user()
 
 # Create the main FastAPI application instance
 app = FastAPI(
-    title="Todo App API",
-    description="Backend API for Todo App with FastAPI and SQLModel",
+    title="Todo AI Chatbot API",
+    description="Backend API for Todo AI Chatbot with FastAPI and SQLModel",
     version="1.0.0"
 )
 
 # Add CORS middleware to allow requests from the frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3000/"],  # Allow requests from Next.js dev server
+    allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods (GET, POST, PUT, DELETE, etc.)
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include the auth router with authentication endpoints
-app.include_router(auth_router)
+# DISABLED: Better Auth temporarily turned OFF - commented out to disable auth functionality
+# app.include_router(auth.router, prefix="/api", tags=["auth"])
 
 # Include the tasks router with all task-related endpoints
-app.include_router(tasks_router)
+app.include_router(tasks.router, prefix="/api", tags=["tasks"])
+
+# Include the chat router with all chat-related endpoints
+app.include_router(chat.router, prefix="/api", tags=["chat"])
 
 @app.get("/")
 def read_root():
@@ -59,9 +65,12 @@ def read_root():
     Root endpoint for the API.
     Returns a simple welcome message.
     """
-    return {"message": "Todo App Backend API - Ready to manage your tasks!"}
+    return {"message": "Todo AI Chatbot Backend API - Ready to manage your tasks with AI!"}
+
 
 # If running this file directly, start the Uvicorn server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import os
+    port = int(os.getenv("PORT", 8000))  # Allow PORT environment variable to override
+    uvicorn.run(app, host="0.0.0.0", port=port)

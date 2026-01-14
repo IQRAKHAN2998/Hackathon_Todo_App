@@ -7,22 +7,23 @@ from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
 
-from better_auth_models import UserCreate, UserLogin, Token, TokenData
+from models.user import User, UserCreate, UserLogin, Token, TokenData
 from database import get_session
-from models import Task, User
+from config.settings import settings
 
 # Load environment variables
 load_dotenv()
 
 # Initialize the router
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(tags=["auth"])
 
 # JWT configuration
-SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = settings.jwt_secret_key
+ALGORITHM = settings.jwt_algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 
 security = HTTPBearer()
+
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """Create a JWT access token"""
@@ -70,7 +71,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     return user
 
 
-@router.post("/signup", response_model=Token)
+@router.post("/auth/signup", response_model=Token)
 def signup(user_create: UserCreate, session: Session = Depends(get_session)):
     """Register a new user"""
     # Check if user already exists
@@ -82,7 +83,7 @@ def signup(user_create: UserCreate, session: Session = Depends(get_session)):
         )
 
     # Create new user
-    hashed_password = User().hash_password(user_create.password)
+    hashed_password = User.hash_password(user_create.password)
     db_user = User(email=user_create.email, password=hashed_password)
     session.add(db_user)
     session.commit()
@@ -97,7 +98,7 @@ def signup(user_create: UserCreate, session: Session = Depends(get_session)):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.post("/login", response_model=Token)
+@router.post("/auth/login", response_model=Token)
 def login(user_login: UserLogin, session: Session = Depends(get_session)):
     """Login an existing user"""
     # Find user by email
