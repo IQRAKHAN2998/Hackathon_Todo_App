@@ -18,7 +18,7 @@ const ChatInterface: React.FC = () => {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-[600px]">
+    <div className="flex flex-col h-full min-h-0">
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
@@ -49,7 +49,7 @@ const ChatInterface: React.FC = () => {
           </div>
         )}
       </div>
-      <div className="border-t border-gray-200 p-4 bg-white">
+      <div className="border-t border-gray-200 p-4 bg-white flex-shrink-0">
         <ChatInput onSend={handleSendMessage} disabled={isLoading} />
       </div>
     </div>

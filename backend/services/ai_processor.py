@@ -81,7 +81,8 @@ class AIProcessor:
             )
 
             result = response.choices[0].message.content
-            parsed_result = eval(result)  # In production, use json.loads
+            import json
+            parsed_result = json.loads(result)
 
             intent_str = parsed_result.get("intent", "general_chat")
             entities = parsed_result.get("entities", {})
@@ -118,17 +119,17 @@ class AIProcessor:
         user_input_lower = user_input.lower()
 
         if any(word in user_input_lower for word in ["add", "create", "new", "make"]):
-            return IntentType.CREATE_TASK, {"title": user_input}
+            return IntentType.CREATE_TASK, {"title": user_input, "original_query": user_input}
         elif any(word in user_input_lower for word in ["list", "show", "see", "my"]):
-            return IntentType.LIST_TASKS, {}
+            return IntentType.LIST_TASKS, {"original_query": user_input}
         elif any(word in user_input_lower for word in ["complete", "done", "finish", "mark"]):
-            return IntentType.COMPLETE_TASK, {}
+            return IntentType.COMPLETE_TASK, {"original_query": user_input}
         elif any(word in user_input_lower for word in ["delete", "remove", "cancel"]):
-            return IntentType.DELETE_TASK, {}
+            return IntentType.DELETE_TASK, {"original_query": user_input}
         elif any(word in user_input_lower for word in ["update", "change", "modify"]):
-            return IntentType.UPDATE_TASK, {}
+            return IntentType.UPDATE_TASK, {"original_query": user_input}
         else:
-            return IntentType.GENERAL_CHAT, {}
+            return IntentType.GENERAL_CHAT, {"original_query": user_input}
 
     def generate_response(self, intent: IntentType, entities: Dict, task_data: Optional[List] = None) -> str:
         """
@@ -157,33 +158,48 @@ class AIProcessor:
         elif intent == IntentType.UPDATE_TASK:
             return "I've updated your task."
         else:
-            return "I understand. How else can I help you with your tasks?"
+            # For general chat, try to use OpenAI API if available
+            if settings.openai_api_key:
+                try:
+                    system_prompt = "You are a helpful AI assistant for a task management application. Respond to the user's message in a friendly and helpful way."
+                    response = openai.chat.completions.create(
+                        model=settings.openai_model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": entities.get('original_query', 'Hello')}
+                        ],
+                        temperature=0.7
+                    )
+                    return response.choices[0].message.content
+                except Exception as e:
+                    print(f"Error generating general chat response: {e}")
+                    return "I understand. How else can I help you with your tasks?"
+            else:
+                return "I understand. How else can I help you with your tasks?"
 
 
 # Global instance of AI processor
 try:
     ai_processor = AIProcessor()
-except ValueError:
+except Exception:
     # Handle the case where API key is not set during initialization
-    from .ai_processor import IntentType
-
     class MockAIProcessor:
         def extract_intent_and_entities(self, user_input: str, user_id: str):
             # Use fallback method when API key is not set
             user_input_lower = user_input.lower()
 
             if any(word in user_input_lower for word in ['add', 'create', 'new', 'make']):
-                return IntentType.CREATE_TASK, {'title': user_input}
+                return IntentType.CREATE_TASK, {'title': user_input, 'original_query': user_input}
             elif any(word in user_input_lower for word in ['list', 'show', 'see', 'my']):
-                return IntentType.LIST_TASKS, {}
+                return IntentType.LIST_TASKS, {'original_query': user_input}
             elif any(word in user_input_lower for word in ['complete', 'done', 'finish', 'mark']):
-                return IntentType.COMPLETE_TASK, {}
+                return IntentType.COMPLETE_TASK, {'original_query': user_input}
             elif any(word in user_input_lower for word in ['delete', 'remove', 'cancel']):
-                return IntentType.DELETE_TASK, {}
+                return IntentType.DELETE_TASK, {'original_query': user_input}
             elif any(word in user_input_lower for word in ['update', 'change', 'modify']):
-                return IntentType.UPDATE_TASK, {}
+                return IntentType.UPDATE_TASK, {'original_query': user_input}
             else:
-                return IntentType.GENERAL_CHAT, {}
+                return IntentType.GENERAL_CHAT, {'original_query': user_input}
 
         def generate_response(self, intent, entities, task_data=None):
             if intent == IntentType.CREATE_TASK:
@@ -201,6 +217,7 @@ except ValueError:
             elif intent == IntentType.UPDATE_TASK:
                 return "I've updated your task."
             else:
+                # For general chat, return a proper response
                 return "I understand. How else can I help you with your tasks?"
 
     ai_processor = MockAIProcessor()

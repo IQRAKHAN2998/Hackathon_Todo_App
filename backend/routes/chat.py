@@ -88,11 +88,7 @@ def process_chat_message(
 
     elif intent == IntentType.LIST_TASKS:
         user_tasks = list_tasks(user_message, current_user.id, session)
-        if user_tasks:
-            task_titles = [task.title for task in user_tasks]
-            ai_response = f"Here are your tasks: {', '.join(task_titles)}"
-        else:
-            ai_response = "You don't have any tasks right now."
+        ai_response = ai_processor.generate_response(intent, entities, user_tasks)
 
     elif intent == IntentType.COMPLETE_TASK:
         completed_task = complete_task(user_message, current_user.id, session)
@@ -118,6 +114,10 @@ def process_chat_message(
     else:
         # For general chat or unrecognized intents
         ai_response = ai_processor.generate_response(intent, entities)
+
+    # Ensure we always have a non-empty response
+    if not ai_response or ai_response.strip() == "":
+        ai_response = "I'm here to help you manage your tasks. How can I assist you today?"
 
     # Add AI response to conversation
     ai_msg_data = ChatMessageCreate(

@@ -2,6 +2,7 @@ from sqlmodel import SQLModel, Field
 from datetime import datetime, timezone
 from typing import Optional
 from enum import Enum
+import uuid
 
 
 class MessageRole(str, Enum):
@@ -13,7 +14,7 @@ class MessageRole(str, Enum):
 
 class ChatMessage(SQLModel, table=True):
     """ChatMessage model to store conversation history."""
-    id: str = Field(default=None, primary_key=True)
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     conversation_id: str = Field(foreign_key="conversation.id", nullable=False)  # Link to the conversation
     role: MessageRole = Field(nullable=False)  # Who sent this message (user, assistant, system)
     content: str = Field(nullable=False)  # The actual message content
