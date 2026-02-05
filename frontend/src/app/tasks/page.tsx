@@ -110,12 +110,7 @@ const TasksPage: React.FC = () => {
       if (Array.isArray(response)) {
         setTasks(response as Task[]);
       } else {
-        // If response is not an array but has a data property (fallback for different formats)
-        if (response && Array.isArray(response.data)) {
-          setTasks(response.data as Task[]);
-        } else {
-          setError('Failed to fetch tasks: Invalid response format');
-        }
+        setError('Failed to fetch tasks: Invalid response format');
       }
     } catch (err: any) {
       setError(err.error || 'Failed to fetch tasks');

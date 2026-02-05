@@ -68,6 +68,15 @@ def read_root():
     return {"message": "Todo AI Chatbot Backend API - Ready to manage your tasks with AI!"}
 
 
+@app.get("/health")
+def health_check():
+    """
+    Health check endpoint for Kubernetes readiness/liveness probes.
+    Returns a simple OK response.
+    """
+    return {"status": "ok"}
+
+
 # If running this file directly, start the Uvicorn server
 if __name__ == "__main__":
     import uvicorn

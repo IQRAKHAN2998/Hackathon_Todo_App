@@ -1,0 +1,22 @@
+# Default values for todo-backend
+replicaCount: 1
+
+image:
+  repository: todo-backend
+  pullPolicy: IfNotPresent
+  tag: "v1.0.2"
+
+service:
+  type: ClusterIP
+  port: 8000
+
+database:
+  url: "sqlite:///./todo.db"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

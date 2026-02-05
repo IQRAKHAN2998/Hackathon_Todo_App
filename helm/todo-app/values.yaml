@@ -1,0 +1,6 @@
+# Values for the todo-app umbrella chart
+todo-frontend:
+  enabled: true
+
+todo-backend:
+  enabled: true

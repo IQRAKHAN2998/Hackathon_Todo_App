@@ -34,7 +34,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
       description,
       priority,
       due_date: dueDate || null,  // Changed to match backend field name
-      tags: JSON.stringify(tags.split(',').map(tag => tag.trim()).filter(tag => tag)), // Serialize tags as JSON string for backend
+      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag), // Convert to array format for Task type
       completed
     };
 
