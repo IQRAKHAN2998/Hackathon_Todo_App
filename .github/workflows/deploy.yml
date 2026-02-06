@@ -15,7 +15,7 @@ jobs:
 
       - name: Login to Hugging Face
         run: |
-          echo ${{ secrets.FULLSTACK_TODO }} | docker login -u hf --password-stdin
+          echo ${{ secrets.fullstack_todo }} | docker login -u hf --password-stdin
 
       - name: Build backend image
         run: |
