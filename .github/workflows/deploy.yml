@@ -13,9 +13,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Login to Hugging Face
+      # Docker login using PAT
+      - name: Login to Hugging Face (Docker)
         run: |
-          echo ${{ secrets.todo_app }} | docker login -u hf --password-stdin
+          echo ${{ secrets.HF_TOKEN }} | docker login -u ${{ secrets.HF_USERNAME }} --password-stdin
 
       - name: Build backend image
         run: |
