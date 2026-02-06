@@ -1,0 +1,30 @@
+name: Deploy Backend to Hugging Face
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Login to Hugging Face
+        run: |
+          echo ${{ secrets.FULLSTACK_TODO }} | docker login -u hf --password-stdin
+
+      - name: Build backend image
+        run: |
+          docker build -t todo-backend ./backend
+
+      - name: Tag image
+        run: |
+          docker tag todo-backend hf.co/spaces/iqra-khan-2998/full_stack_todo:latest
+
+      - name: Push image
+        run: |
+          docker push hf.co/spaces/iqra-khan-2998/full_stack_todo:latest
