@@ -133,6 +133,7 @@ The AI chatbot understands various ways to interact with your tasks:
 ### Frontend (.env.local)
 - `NEXT_PUBLIC_API_BASE_URL`: Backend API URL (defaults to http://localhost:8000)
 
+
 ## Deployment
 
 ### Backend Deployment
