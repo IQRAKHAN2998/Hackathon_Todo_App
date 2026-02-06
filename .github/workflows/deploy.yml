@@ -3,7 +3,7 @@ name: Deploy Backend to Hugging Face
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   deploy:
