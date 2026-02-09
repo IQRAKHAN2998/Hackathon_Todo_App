@@ -1,3 +1,15 @@
+---
+title: Todo App Backend
+emoji: 📝
+colorFrom: blue
+colorTo: green
+sdk: python
+sdk_version: "0.2.12"
+python_version: "3.12"
+app_file: app.py
+pinned: false
+---
+
 # Todo AI Chatbot
 
 An AI-powered task management application that allows users to manage their tasks through natural language conversations with an AI assistant.
