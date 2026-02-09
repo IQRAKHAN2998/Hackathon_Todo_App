@@ -23,7 +23,7 @@ jobs:
 
         git clone https://huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME hf
 
-        cp main.py hf/
+        cp app.py hf/
         cp pyproject.toml hf/
         cp uv.lock hf/
         cp Dockerfile hf/
