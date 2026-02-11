@@ -26,7 +26,7 @@ jobs:
         git clone https://huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME hf
 
         # Copy all files from backend folder to Hugging Face Space root
-        cp -r backend_deploy/* hf/
+        cp -r backend/* hf/
 
         # Commit and push changes
         cd hf
