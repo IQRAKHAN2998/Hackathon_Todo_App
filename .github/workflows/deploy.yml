@@ -2,7 +2,7 @@ name: Deploy to Hugging Face
 
 on:
   push:
-    branches: [ main ]  # Replace 'main' if your branch has a different name
+    branches: [ main ]  # Change if your branch name is different
 
 jobs:
   deploy:
@@ -25,10 +25,8 @@ jobs:
         # Clone Hugging Face Space
         git clone https://huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME hf
 
-        # Copy backend folder files to Hugging Face Space
-        cp todo_app_backend/app.py hf/
-        cp todo_app_backend/requirements.txt hf/
-        cp todo_app_backend/Dockerfile hf/
+        # Copy all files from backend folder to Hugging Face Space root
+        cp -r todo_app_backend/* hf/
 
         # Commit and push changes
         cd hf
