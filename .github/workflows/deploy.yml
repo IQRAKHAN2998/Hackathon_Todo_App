@@ -2,7 +2,11 @@ name: Deploy to Hugging Face
 
 on:
   push:
-    branches: [ main ]  # Change if your branch name is different
+<<<<<<< HEAD
+    branches: [master]
+=======
+    branches: [main]
+>>>>>>> 54900eb (save local changes)
 
 jobs:
   deploy:
@@ -22,14 +26,18 @@ jobs:
         git config --global user.email "bot@github.com"
         git config --global user.name "Bot"
 
-        # Clone Hugging Face Space
         git clone https://huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME hf
 
-        # Copy all files from backend folder to Hugging Face Space root
-        cp -r backend/* hf/
+        cp app.py hf/
+        cp pyproject.toml hf/
+        cp uv.lock hf/
+        cp Dockerfile hf/
 
-        # Commit and push changes
         cd hf
         git add .
-        git commit -m "Deploy" || echo "No changes to commit"
+        git commit -m "Deploy" || echo "No changes"
+<<<<<<< HEAD
         git push https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME main
+=======
+        git push https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME main
+>>>>>>> 54900eb (save local changes)

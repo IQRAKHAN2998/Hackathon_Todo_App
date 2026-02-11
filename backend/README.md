@@ -1,3 +1,13 @@
+---
+title: Todo App Backend
+emoji: 🚀
+colorFrom: blue
+colorTo: green
+sdk: fastapi
+app_file: app.py
+pinned: false
+---
+
 # Todo App Backend
 
 This is the backend for the Todo application built with FastAPI and SQLModel.
