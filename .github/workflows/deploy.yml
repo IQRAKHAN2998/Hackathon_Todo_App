@@ -2,7 +2,11 @@ name: Deploy to Hugging Face
 
 on:
   push:
+<<<<<<< HEAD
     branches: [master]
+=======
+    branches: [main]
+>>>>>>> 54900eb (save local changes)
 
 jobs:
   deploy:
@@ -31,4 +35,8 @@ jobs:
         cd hf
         git add .
         git commit -m "Deploy" || echo "No changes"
+<<<<<<< HEAD
         git push https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME main
+=======
+        git push https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$HF_SPACE_NAME main
+>>>>>>> 54900eb (save local changes)
